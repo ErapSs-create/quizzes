@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1423fb">
+<title>Викторина</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Nunito+Sans:wght@500;800;900&display=swap">
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { min-height: 100dvh; display: flex; flex-direction: column; }
+  .bar { display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--blue-900); font-size: 16px; }
+  main { flex: 1; display: flex; flex-direction: column; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); gap: 20px; max-width: 560px; width: 100%; margin: 0 auto; }
+  h1.display { font-size: 52px; }
+  .lead { font-size: 18px; line-height: 1.4; margin: 0; }
+  label.label { font-size: 18px; display: block; margin-bottom: 8px; }
+  input[type=text] { width: 100%; height: 60px; padding: 0 16px; font-size: 22px; font-weight: 800; border: 0; background: var(--white); color: var(--blue-900); }
+  input[type=text]:focus { outline: 4px solid var(--yellow-500); }
+  .err { background: var(--white); color: var(--error); font-weight: 800; padding: 10px 14px; }
+  .btn { width: 100%; min-height: 60px; }
+  .qtext { font-size: 20px; font-weight: 800; line-height: 1.3; margin: 0; }
+  .opts { display: flex; flex-direction: column; gap: 0; flex: 1; }
+  .opts .opt { flex: 1; min-height: 76px; padding: 14px 16px; font-size: 18px; font-weight: 800; line-height: 1.25; width: 100%; }
+  .opts .opt .letter { width: 44px; height: 44px; font-size: 26px; }
+  .opts .opt:active:not(:disabled) { filter: brightness(0.9); }
+  .opts .opt.mine { outline: 5px solid var(--white); outline-offset: -5px; }
+  .card { padding: 24px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .card.ok { background: var(--green-500); color: var(--blue-900); }
+  .card.bad { background: var(--pink-500); color: var(--black); }
+  .card.wait { background: var(--blue-900); }
+  .card.white { background: var(--white); color: var(--black); }
+  .card .display { font-size: 48px; }
+  .card .label { font-size: 18px; }
+  .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+  .row > div { padding: 16px 12px; background: var(--yellow-500); color: var(--blue-900); }
+  .row > div:nth-child(2) { background: var(--gold-500); }
+  .row > div:nth-child(3) { background: var(--green-500); }
+  .row .num { font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1; }
+  .row .cap { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+  .top { list-style: none; margin: 0; padding: 0; }
+  .top li { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--blue-500); font-size: 18px; font-weight: 800; }
+  .top li span:nth-child(2) { flex: 1; }
+  .top li.me { color: var(--yellow-500); }
+  .pulse { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+  @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span class="label" id="title">Викторина</span>
+  <span class="label" id="me"></span>
+</header>
+<main id="main"><p class="label pulse">Подключение…</p></main>
+
+<script>
+const LETTERS = ['А', 'Б', 'В', 'Г'];
+const BASE = '/' + location.pathname.split('/').filter(Boolean)[0];
+const KEY = 'quiz-pid-' + BASE;
+let pid = null, S = null, es = null, lastKey = '', sending = false;
+try { pid = localStorage.getItem(KEY); } catch (e) {}
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+
+function connect() {
+  if (es) es.close();
+  es = new EventSource(BASE + '/events?pid=' + encodeURIComponent(pid || ''));
+  es.onmessage = (e) => { S = JSON.parse(e.data); render(); };
+}
+
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return { ok: r.ok, data: await r.json().catch(() => ({})) };
+}
+
+function render() {
+  $('title').textContent = S.title;
+  document.title = S.title;
+  $('me').textContent = S.joined ? S.name + ' · ' + S.score : '';
+  if (!S.joined) {
+    if (pid) { pid = null; try { localStorage.removeItem(KEY); } catch (e) {} } // игру перезапустили
+    if (lastKey !== 'join') renderJoin();
+    lastKey = 'join';
+    return;
+  }
+  const key = S.phase + ':' + S.index + ':' + S.myChoice;
+  if (key === lastKey && S.phase !== 'reveal' && S.phase !== 'lobby') return;
+  lastKey = key;
+  if (S.phase === 'lobby') renderWait('Вы в игре!', 'Смотрите на большой экран — викторина скоро начнётся.');
+  else if (S.phase === 'question') S.myChoice === null ? renderQuestion() : renderAnswered();
+  else if (S.phase === 'reveal') renderReveal();
+  else renderFinal();
+}
+
+function renderJoin() {
+  $('main').innerHTML = `
+    <h1 class="display">${esc(S.title)}</h1>
+    <p class="lead">Введите имя — так вас увидят в таблице лидеров. Чем быстрее правильный ответ, тем больше очков: до 1000 за вопрос.</p>
+    <form id="f">
+      <label class="label" for="name">Ваше имя</label>
+      <input type="text" id="name" maxlength="24" autocomplete="nickname" autocapitalize="words" enterkeyhint="go" required>
+      <div id="err" class="err hidden" role="alert" style="margin-top:12px"></div>
+      <button class="btn" style="margin-top:16px" id="go">Войти в игру</button>
+    </form>`;
+  $('name').focus();
+  $('f').onsubmit = async (e) => {
+    e.preventDefault();
+    const name = $('name').value.trim();
+    if (!name) return;
+    $('go').disabled = true;
+    const r = await post(BASE + '/api/join', { name });
+    if (!r.ok) { $('err').textContent = r.data.error || 'Не получилось войти'; $('err').classList.remove('hidden'); $('go').disabled = false; return; }
+    pid = r.data.pid;
+    try { localStorage.setItem(KEY, pid); } catch (e) {}
+    lastKey = '';
+    connect();
+  };
+}
+
+function renderWait(title, text) {
+  $('main').innerHTML = `
+    <div class="card wait"><span class="display">${esc(title)}</span><p class="lead">${esc(text)}</p></div>
+    ${S.phase === 'lobby' ? '<p class="label pulse" style="font-size:18px">Ждём ведущего…</p>' : ''}`;
+}
+
+function renderQuestion() {
+  $('main').innerHTML = `
+    <span class="label" style="font-size:16px">Вопрос ${S.index + 1} из ${S.total}</span>
+    <p class="qtext">${esc(S.question.text)}</p>
+    <div class="opts">${S.question.options.map((o, i) => `
+      <button class="opt" data-i="${i}"><span class="letter">${LETTERS[i]}</span><span>${esc(o)}</span></button>`).join('')}
+    </div>`;
+  document.querySelectorAll('.opts .opt').forEach((b) => {
+    b.onclick = async () => {
+      if (sending) return;
+      sending = true;
+      document.querySelectorAll('.opts .opt').forEach((x) => { x.disabled = true; if (x !== b) x.classList.add('dim'); });
+      b.classList.add('mine');
+      const r = await post(BASE + '/api/answer', { pid, index: S.index, choice: Number(b.dataset.i) });
+      sending = false;
+      if (!r.ok) renderWait('Не успели', r.data.error || 'Вопрос уже закрыт');
+    };
+  });
+}
+
+function renderAnswered() {
+  $('main').innerHTML = `
+    <span class="label" style="font-size:16px">Вопрос ${S.index + 1} из ${S.total}</span>
+    <div class="card wait">
+      <span class="label">Ваш ответ</span>
+      <span class="display">${LETTERS[S.myChoice]}) ${esc(S.question.options[S.myChoice])}</span>
+      <p class="lead pulse">Ответ принят. Ждём остальных…</p>
+    </div>`;
+}
+
+function statsRow() {
+  return `<div class="row">
+    <div><div class="num">${S.score}</div><div class="cap">${plural(S.score, 'очко', 'очка', 'очков')}</div></div>
+    <div><div class="num">${S.place || '—'}</div><div class="cap">место из ${S.playersTotal}</div></div>
+    <div><div class="num">${S.correctCount}</div><div class="cap">верных</div></div>
+  </div>`;
+}
+
+function renderReveal() {
+  const right = S.myChoice === S.correct;
+  const none = S.myChoice === null;
+  const head = none
+    ? `<div class="card bad"><span class="display">Время вышло</span><span class="label">Ответа нет · 0 очков</span></div>`
+    : right
+      ? `<div class="card ok"><span class="display">Верно!</span><span class="label">+${S.lastPoints} ${plural(S.lastPoints, 'очко', 'очка', 'очков')}</span></div>`
+      : `<div class="card bad"><span class="display">Неверно</span><span class="label">0 очков</span></div>`;
+  $('main').innerHTML = `
+    ${head}
+    <div class="card white">
+      <span class="label" style="color:var(--blue-500)">Правильный ответ</span>
+      <span style="font-size:20px;font-weight:900">${LETTERS[S.correct]}) ${esc(S.question.options[S.correct])}</span>
+      ${S.note ? `<span class="lead">${esc(S.note)}</span>` : ''}
+    </div>
+    ${statsRow()}`;
+}
+
+function renderFinal() {
+  $('main').innerHTML = `
+    <h1 class="display">Ваш результат</h1>
+    ${statsRow()}
+    <p class="lead">Правильных ответов: ${S.correctCount} из ${S.total}.</p>
+    <div class="card wait">
+      <span class="display" style="font-size:36px">Топ-3</span>
+      <ol class="top">${(S.top3 || []).map((r) => `<li class="${r.name === S.name ? 'me' : ''}"><span>${r.place}</span><span>${esc(r.name)}</span><span>${r.score}</span></li>`).join('')}</ol>
+    </div>`;
+}
+
+connect();
+</script>
+</body>
+</html>

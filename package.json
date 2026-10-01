@@ -1,0 +1,13 @@
+{
+  "name": "quizzes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Викторины с подсчётом очков: финансовая и РУДН",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

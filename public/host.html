@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Экран ведущего</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Nunito+Sans:wght@500;800;900&display=swap">
+<link rel="stylesheet" href="/style.css">
+<script src="/qrcode.js"></script>
+<style>
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  .bar {
+    display: flex; align-items: center; gap: 24px;
+    padding: 20px var(--page-margin); background: var(--blue-900);
+    font-size: 22px;
+  }
+  .bar .title { flex: 1; font-size: 26px; }
+  main { flex: 1; display: flex; flex-direction: column; padding: 40px var(--page-margin); gap: 32px; }
+
+  /* Лобби */
+  .lobby { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 0; flex: 1; }
+  .lobby .intro { padding-right: 48px; display: flex; flex-direction: column; gap: 28px; }
+  .lobby h1 { font-size: clamp(56px, 7.5vw, 130px); }
+  .lobby .sub { font-size: 28px; max-width: 30ch; }
+  .join { background: var(--yellow-500); color: var(--blue-900); padding: 36px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start; }
+  .join .url { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 3vw, 52px); line-height: 1; word-break: break-all; }
+  .join .alt { font-size: 18px; }
+  #qr { background: var(--white); padding: 14px; line-height: 0; }
+  #qr img { width: 260px; height: 260px; image-rendering: pixelated; }
+  .players { display: flex; flex-wrap: wrap; gap: 0; }
+  .chip { padding: 10px 18px; font-size: 22px; font-weight: 800; background: var(--white); color: var(--blue-900); }
+  .chip:nth-child(4n+2) { background: var(--green-500); }
+  .chip:nth-child(4n+3) { background: var(--gold-500); }
+  .chip:nth-child(4n+4) { background: var(--pink-500); color: var(--black); }
+  .muted { opacity: 0.8; }
+
+  /* Вопрос */
+  .qhead { display: flex; align-items: flex-end; gap: 40px; }
+  .qtext { flex: 1; font-size: clamp(40px, 4.4vw, 80px); }
+  .stat { text-align: right; flex: none; }
+  .stat .big { font-family: var(--font-display); font-weight: 700; font-size: 72px; line-height: 1; }
+  .stat .small { font-size: 18px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-display); }
+  .meter { height: 14px; background: var(--blue-900); }
+  .meter > div { height: 100%; background: var(--green-500); transition: width 0.25s linear; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; flex: 1; min-height: 300px; }
+  .grid .opt { padding: 24px 32px; font-size: clamp(22px, 2vw, 36px); font-weight: 800; line-height: 1.15; min-height: 140px; }
+  .grid .opt .letter { width: 64px; height: 64px; font-size: 40px; }
+  .grid .opt .text { flex: 1; }
+  .grid .opt .count { font-family: var(--font-display); font-weight: 700; font-size: 48px; }
+  .reveal-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 0; }
+  .note { background: var(--white); color: var(--black); padding: 28px 32px; font-size: 24px; line-height: 1.35; }
+  .note .label { color: var(--blue-500); font-size: 20px; display: block; margin-bottom: 8px; }
+  .board { background: var(--blue-900); padding: 24px 32px; }
+  .board h3 { font-size: 26px; margin-bottom: 12px; }
+  .board ol { list-style: none; margin: 0; padding: 0; }
+  .board li { display: flex; gap: 14px; font-size: 24px; padding: 6px 0; border-bottom: 1px solid var(--blue-500); }
+  .board li span:nth-child(2) { flex: 1; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .board li span:first-child { width: 28px; font-family: var(--font-display); font-weight: 700; }
+  .board li span:last-child { font-family: var(--font-display); font-weight: 700; }
+
+  /* Финал */
+  .final h1 { font-size: clamp(56px, 7vw, 120px); text-align: center; }
+  .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 0; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .step { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 28px 16px; color: var(--blue-900); text-align: center; gap: 8px; }
+  .step .place { font-family: var(--font-display); font-weight: 700; font-size: 96px; line-height: 0.9; }
+  .step .who { font-size: clamp(24px, 2.4vw, 40px); font-weight: 900; word-break: break-word; }
+  .step .pts { font-family: var(--font-display); font-weight: 600; font-size: 28px; }
+  .step.p1 { background: var(--gold-500); min-height: 420px; }
+  .step.p2 { background: var(--green-500); min-height: 330px; }
+  .step.p3 { background: var(--yellow-500); min-height: 260px; }
+  .rest { max-width: 1200px; margin: 0 auto; width: 100%; columns: 2; column-gap: 48px; font-size: 22px; }
+  .rest div { display: flex; gap: 12px; padding: 4px 0; break-inside: avoid; }
+  .rest div span:nth-child(2) { flex: 1; }
+
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; }
+  .controls .spacer { flex: 1; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="title label" id="title">Викторина</div>
+  <div class="label" id="progress"></div>
+  <div class="label" id="count"></div>
+</header>
+<main id="main"><p class="label">Подключение к серверу…</p></main>
+
+<script>
+const LETTERS = ['А', 'Б', 'В', 'Г'];
+const CHECK = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" aria-label="Правильный ответ"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+let S = null, offset = 0, lastKey = '';
+const $ = (id) => document.getElementById(id);
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const BASE = '/' + location.pathname.split('/').filter(Boolean)[0];
+const KEY_STORE = 'quiz-host-key';
+let hostKey = '';
+try { hostKey = localStorage.getItem(KEY_STORE) || ''; } catch (e) {}
+
+function hostFetch(name, body) {
+  return fetch(BASE + '/api/host/' + name, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Host-Key': hostKey },
+    body: JSON.stringify(body || {}),
+  });
+}
+
+async function act(name, body) {
+  const r = await hostFetch(name, body);
+  if (!r.ok) alert((await r.json().catch(() => ({}))).error || 'Ошибка');
+}
+
+// Сначала проверяем пароль, потом подключаемся к игре
+async function login() {
+  let r;
+  try { r = await hostFetch('ping'); } catch (e) { setTimeout(login, 2000); return; }
+  if (r.ok) return connect();
+  const err = (await r.json().catch(() => ({}))).error || 'Нет доступа';
+  $('main').innerHTML = `
+    <form id="login" style="max-width:520px;display:flex;flex-direction:column;gap:16px">
+      <h1 class="display" style="font-size:64px">Вход ведущего</h1>
+      <label class="label" for="pw" style="font-size:20px">Пароль ведущего</label>
+      <input id="pw" type="password" autocomplete="current-password" required
+        style="height:60px;padding:0 16px;font-size:24px;border:0;background:var(--white);color:var(--blue-900)">
+      ${hostKey ? `<p role="alert" style="margin:0;padding:10px 14px;background:var(--white);color:var(--error);font-weight:800">${esc(err)}</p>` : ''}
+      <button class="btn">Войти</button>
+    </form>`;
+  $('pw').focus();
+  $('login').onsubmit = (e) => {
+    e.preventDefault();
+    hostKey = $('pw').value;
+    try { localStorage.setItem(KEY_STORE, hostKey); } catch (e2) {}
+    login();
+  };
+}
+
+function connect() {
+  // Бесплатный Render усыпляет сервер после 15 минут без запросов — пока открыт экран ведущего, будим его
+  setInterval(() => hostFetch('ping').catch(() => {}), 4 * 60 * 1000);
+  const es = new EventSource(BASE + '/events?role=host&key=' + encodeURIComponent(hostKey));
+  es.onmessage = (e) => {
+    S = JSON.parse(e.data);
+    offset = S.now - Date.now();
+    render();
+  };
+}
+
+function render() {
+  $('title').textContent = S.title;
+  document.title = S.title + ' — ведущий';
+  $('progress').textContent = S.phase === 'question' || S.phase === 'reveal' ? 'Вопрос ' + (S.index + 1) + ' / ' + S.total : '';
+  $('count').textContent = 'Игроков: ' + S.players.length;
+
+  // Перерисовываем целиком только при смене экрана, остальное — точечно
+  const key = S.phase + ':' + S.index;
+  if (S.phase === 'lobby') renderLobby(key !== lastKey);
+  else if (S.phase === 'question') { if (key !== lastKey) renderQuestion(); updateQuestion(); }
+  else if (S.phase === 'reveal') renderReveal();
+  else renderFinal();
+  lastKey = key;
+}
+
+// На своём компьютере игрокам нужен адрес в локальной сети, в интернете — адрес сайта
+function joinUrls() {
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  return local && S.lanUrls.length ? S.lanUrls : [location.origin + BASE];
+}
+function joinUrl() { return joinUrls()[0]; }
+
+function renderLobby(full) {
+  if (full) {
+    $('main').innerHTML = `
+      <section class="lobby">
+        <div class="intro">
+          <h1 class="display">${esc(S.title)}</h1>
+          <p class="sub">${esc(S.subtitle || '')}</p>
+          <div>
+            <p class="label" style="font-size:22px;margin:0 0 12px" id="pcount"></p>
+            <div class="players" id="players"></div>
+          </div>
+          <div class="controls">
+            <button class="btn" id="start">Начать викторину</button>
+          </div>
+        </div>
+        <div class="join">
+          <span class="label" style="font-size:22px">Откройте на телефоне</span>
+          <div class="url" id="url"></div>
+          <div id="qr"></div>
+          <div class="alt" id="alt"></div>
+        </div>
+      </section>`;
+    $('start').onclick = () => act('start');
+    $('url').textContent = joinUrl().replace(/^https?:\/\//, '');
+    const alts = joinUrls().slice(1).map((u) => u.replace(/^https?:\/\//, ''));
+    $('alt').textContent = alts.length ? 'Если не открывается: ' + alts.join(' · ') : '';
+    if (window.qrcode) {
+      const q = qrcode(0, 'M'); q.addData(joinUrl()); q.make();
+      $('qr').innerHTML = q.createImgTag(8, 0);
+    } else $('qr').classList.add('hidden');
+  }
+  $('pcount').textContent = S.players.length ? 'Уже в игре — ' + S.players.length : 'Ждём игроков…';
+  $('players').innerHTML = S.players.map((n) => `<span class="chip">${esc(n)}</span>`).join('');
+  $('start').disabled = S.players.length === 0;
+}
+
+function optionsHtml(withCounts) {
+  return S.question.options.map((o, i) => {
+    const isCorrect = S.correct === i;
+    const dim = withCounts && !isCorrect ? ' dim' : '';
+    return `<div class="opt${dim}" data-i="${i}">
+      <span class="letter">${LETTERS[i]}</span>
+      <span class="text">${esc(o)}</span>
+      ${withCounts ? `<span class="count">${S.counts[i]}</span>${isCorrect ? CHECK : ''}` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderQuestion() {
+  $('main').innerHTML = `
+    <div class="qhead">
+      <h1 class="display qtext">${esc(S.question.text)}</h1>
+      <div class="stat"><div class="big" id="answered"></div><div class="small">ответили</div></div>
+      <div class="stat"><div class="big" id="secs"></div><div class="small">секунд</div></div>
+    </div>
+    <div class="meter" aria-hidden="true"><div id="meter"></div></div>
+    <div class="grid">${optionsHtml(false)}</div>
+    <div class="controls">
+      <span class="label" id="worth" style="font-size:22px;align-self:center"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="close">Показать ответ</button>
+    </div>`;
+  $('close').onclick = () => act('reveal');
+}
+
+function updateQuestion() {
+  $('answered').textContent = S.answered + ' / ' + S.players.length;
+}
+
+function tick() {
+  if (S && S.phase === 'question' && $('secs')) {
+    const ms = Date.now() + offset - S.qStart;
+    $('secs').textContent = Math.floor(ms / 1000);
+    const k = Math.min(Math.max(ms, 0), S.decayMs) / S.decayMs;
+    $('meter').style.width = (100 - 50 * k) + '%';
+    $('worth').textContent = 'Верный ответ сейчас стоит ' + Math.round(1000 - 500 * k) + ' очков';
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function boardHtml(n) {
+  return S.ranking.slice(0, n).map((r) => `<li><span>${r.place}</span><span>${esc(r.name)}</span><span>${r.score}</span></li>`).join('');
+}
+
+function renderReveal() {
+  const last = S.index + 1 >= S.total;
+  $('main').innerHTML = `
+    <div class="qhead"><h1 class="display qtext">${esc(S.question.text)}</h1></div>
+    <div class="grid">${optionsHtml(true)}</div>
+    <div class="reveal-row">
+      <div class="note">${S.note ? `<span class="label">Почему</span>${esc(S.note)}` : `<span class="label">Правильный ответ</span>${LETTERS[S.correct]}) ${esc(S.question.options[S.correct])}`}</div>
+      <div class="board"><h3 class="display">Лидеры</h3><ol>${boardHtml(5)}</ol></div>
+    </div>
+    <div class="controls">
+      <span class="spacer"></span>
+      ${last ? '' : '<button class="btn ghost" id="finish">Завершить досрочно</button>'}
+      <button class="btn" id="next">${last ? 'Подвести итоги' : 'Следующий вопрос'}</button>
+    </div>`;
+  $('next').onclick = () => act('next');
+  if (!last) $('finish').onclick = () => { if (confirm('Завершить викторину и показать итоги?')) act('finish'); };
+}
+
+function renderFinal() {
+  const [a, b, c] = S.ranking;
+  const step = (r, cls, place) => r
+    ? `<div class="step ${cls}"><div class="place">${place}</div><div class="who">${esc(r.name)}</div><div class="pts">${r.score} ${plural(r.score, 'очко', 'очка', 'очков')} · ${r.correct} ${plural(r.correct, 'верный', 'верных', 'верных')}</div></div>`
+    : `<div class="step ${cls}"><div class="place">${place}</div><div class="who">—</div></div>`;
+  $('main').innerHTML = `
+    <h1 class="display">Подведение результатов!</h1>
+    <div class="podium">${step(b, 'p2', 2)}${step(a, 'p1', 1)}${step(c, 'p3', 3)}</div>
+    <div class="rest">${S.ranking.slice(3).map((r) => `<div><span>${r.place}.</span><span>${esc(r.name)}</span><span>${r.score}</span></div>`).join('')}</div>
+    <div class="controls"><span class="spacer"></span><button class="btn ghost" id="reset">Новая игра</button></div>`;
+  $('reset').onclick = () => { if (confirm('Начать заново? Все результаты будут удалены.')) act('reset'); };
+}
+
+login();
+</script>
+</body>
+</html>

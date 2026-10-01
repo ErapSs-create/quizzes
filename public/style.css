@@ -1,0 +1,88 @@
+/* Цвета, шрифты и правила — из дизайн-системы (Georgia Aquarium tokens):
+   плоские квадратные блоки встык, без скруглений, градиентов и теней. */
+:root {
+  --blue-500: #1423fb;
+  --blue-700: #0815c4;
+  --blue-900: #000080;
+  --green-500: #0dfc95;
+  --green-700: #0bce7a;
+  --gold-500: #ffc600;
+  --gold-700: #c09000;
+  --pink-500: #ff017f;
+  --pink-700: #d00168;
+  --yellow-500: #dafd6a;
+  --yellow-700: #b1dc44;
+  --white: #ffffff;
+  --gray-300: #b7b7b7;
+  --black: #000000;
+  --success: #177f52;
+  --error: #d32300;
+
+  /* Kaneda Gothic не поддерживает кириллицу, поэтому её место занимает узкий гротеск Oswald */
+  --font-display: "Kaneda Gothic", "Oswald", "Arial Narrow", sans-serif;
+  --font-body: Avenir, "Avenir Next", "Nunito Sans", system-ui, sans-serif;
+  --page-margin: 36px;
+
+  --opt-0: var(--yellow-500);
+  --opt-1: var(--green-500);
+  --opt-2: var(--gold-500);
+  --opt-3: var(--pink-500);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--blue-500);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; border: 0; border-radius: 0; cursor: pointer; }
+button:disabled { cursor: default; }
+input { font: inherit; border-radius: 0; }
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+  margin: 0;
+}
+.label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Кнопки — плоские блоки */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 56px; padding: 0 28px;
+  font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
+  font-size: 22px; letter-spacing: 0.04em;
+  background: var(--yellow-500); color: var(--blue-900);
+}
+.btn:hover:not(:disabled) { background: var(--yellow-700); }
+.btn:focus-visible, .opt:focus-visible { outline: 4px solid var(--white); outline-offset: -8px; }
+.btn.ghost { background: transparent; color: var(--white); box-shadow: inset 0 0 0 2px var(--white); }
+.btn.ghost:hover:not(:disabled) { background: var(--blue-700); }
+.btn:disabled { opacity: 0.4; }
+
+/* Варианты ответа */
+.opt { position: relative; display: flex; align-items: center; gap: 18px; text-align: left; color: var(--black); }
+.opt[data-i="0"] { background: var(--opt-0); }
+.opt[data-i="1"] { background: var(--opt-1); }
+.opt[data-i="2"] { background: var(--opt-2); }
+.opt[data-i="3"] { background: var(--opt-3); }
+.opt .letter {
+  flex: none; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700;
+  background: var(--black); color: var(--white);
+}
+.opt.dim { opacity: 0.28; }
+.opt svg { flex: none; }
+
+.hidden { display: none !important; }
